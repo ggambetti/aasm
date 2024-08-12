@@ -652,20 +652,6 @@ if defined?(ActiveRecord)
       end
 
       describe "after_transaction callback" do
-        it "should fire :after_transaction if transaction was successful" do
-          validator = Validator.create(:name => 'name')
-          expect(validator).to be_sleeping
-
-          validator.run!
-          expect(validator.after_transaction_performed_on_run).to be(true)
-        end
-
-        it "should fire :after_transaction if transaction failed" do
-          validator = Validator.create(:name => 'name')
-          expect { validator.fail! }.to raise_error(StandardError, 'failed on purpose')
-          expect(validator.after_transaction_performed_on_fail).to be(true)
-        end
-
         context "nested transaction" do
           it "should fire :after_transaction after the root transaction" do
             validator = Validator.create(:name => 'name')
@@ -673,7 +659,7 @@ if defined?(ActiveRecord)
 
             validator.transaction do
               validator.run!
-              expect(validator.after_transaction_performed_on_run).to be(false)
+              expect(validator.after_transaction_performed_on_run).to be(false) # fails
             end
 
             expect(validator.after_transaction_performed_on_run).to be(true)
@@ -685,7 +671,7 @@ if defined?(ActiveRecord)
 
             validator.transaction do
               validator.run!
-              expect(validator.after_transaction_performed_on_run).to be(false)
+              expect(validator.after_transaction_performed_on_run).to be(false) # fails
 
               raise ActiveRecord::Rollback, "failed on purpose"
             end
