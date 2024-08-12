@@ -651,6 +651,50 @@ if defined?(ActiveRecord)
         end
       end
 
+      describe "after_transaction callback" do
+        it "should fire :after_transaction if transaction was successful" do
+          validator = Validator.create(:name => 'name')
+          expect(validator).to be_sleeping
+
+          validator.run!
+          expect(validator.after_transaction_performed_on_run).to be(true)
+        end
+
+        it "should fire :after_transaction if transaction failed" do
+          validator = Validator.create(:name => 'name')
+          expect { validator.fail! }.to raise_error(StandardError, 'failed on purpose')
+          expect(validator.after_transaction_performed_on_fail).to be(true)
+        end
+
+        context "nested transaction" do
+          it "should fire :after_transaction after the root transaction" do
+            validator = Validator.create(:name => 'name')
+            expect(validator).to be_sleeping
+
+            validator.transaction do
+              validator.run!
+              expect(validator.after_transaction_performed_on_run).to be(false)
+            end
+
+            expect(validator.after_transaction_performed_on_run).to be(true)
+          end
+
+          it "should fire :after_transaction if root transaction failed" do
+            validator = Validator.create(:name => 'name')
+            expect(validator).to be_sleeping
+
+            validator.transaction do
+              validator.run!
+              expect(validator.after_transaction_performed_on_run).to be(false)
+
+              raise ActiveRecord::Rollback, "failed on purpose"
+            end
+
+            expect(validator.after_transaction_performed_on_run).to be(true)
+          end
+        end
+      end
+
       describe 'callbacks for the new DSL' do
 
         it "be called in order" do
